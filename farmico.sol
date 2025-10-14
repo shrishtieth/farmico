@@ -18,6 +18,9 @@ contract Farmico is ERC20, AccessControl, Pausable {
     event BurnerUpdated(address indexed newBurner);
     event TokensMinted(address indexed to, uint256 amount, address caller);
     event TokensBurned(address indexed from, uint256 amount, address caller);
+    event OwnerUpdated(address oldOwner, address newOwner);
+    event AdminAdded(address admin);
+    event AdminRemoved(address admin);
 
     constructor(string memory name, string memory symbol) 
         ERC20(name, symbol) 
@@ -65,6 +68,7 @@ contract Farmico is ERC20, AccessControl, Pausable {
 
     // Mint new tokens (only admin)
     function mint(address to, uint256 amount) external adminOnly whenNotPaused {
+        require(to != address(0), "Input is a zero address");
         _mint(to, amount);
         emit TokensMinted(to, amount, msg.sender);
     }
@@ -72,19 +76,23 @@ contract Farmico is ERC20, AccessControl, Pausable {
     // Grant ADMIN role (only owner)
     function addAdmin(address account) external onlyRole(ROLE_OWNER) {
         grantRole(ADMIN_ROLE, account);
+        emit AdminAdded(account);
     }
 
     // Revoke ADMIN role (only owner)
     function removeAdmin(address account) external onlyRole(ROLE_OWNER) {
         revokeRole(ADMIN_ROLE, account);
+        emit AdminRemoved(account);
     }
     
     // Transfer ownership to new account (revokes from old owner)
     function updateOwner(address newOwner) external onlyRole(ROLE_OWNER) {
+        require(newOwner != address(0), "Zero address not allowed");
         address oldOwner = msg.sender;
         _revokeRole(DEFAULT_ADMIN_ROLE, oldOwner);
         _revokeRole(ROLE_OWNER, oldOwner);
         _grantRole(DEFAULT_ADMIN_ROLE, newOwner);
         _grantRole(ROLE_OWNER, newOwner);
+        emit OwnerUpdated(oldOwner, newOwner);
     }
 }
