@@ -23,8 +23,12 @@ contract RedeemAndBurn is AccessControl, Pausable, ReentrancyGuard {
     // Events
     event Redeemed(address indexed user, bytes32 indexed storeManager, uint256 amount, uint256 timestamp);
     event OwnerUpdated(address oldOwner, address newOwner);
+    event AdminAdded(address admin);
+    event AdminRemoved(address admin);
+    event TokensWithdrawn(address token, address to, uint256 amount);
 
     constructor(address _token) {
+        require(_token != address(0), "Token is a zero address");
         token = IFarmico(_token);
 
         // Deployer gets owner privileges
@@ -53,10 +57,12 @@ contract RedeemAndBurn is AccessControl, Pausable, ReentrancyGuard {
     // Admin management
     function addAdmin(address account) external onlyRole(ROLE_OWNER) {
         grantRole(ADMIN_ROLE, account);
+        emit AdminAdded(account);
     }
 
     function removeAdmin(address account) external onlyRole(ROLE_OWNER) {
         revokeRole(ADMIN_ROLE, account);
+        emit AdminRemoved(account);
     }
 
     // Transfer ownership
@@ -80,6 +86,7 @@ contract RedeemAndBurn is AccessControl, Pausable, ReentrancyGuard {
         nonReentrant
     {
         require(amount > 0, "Amount must be greater than zero");
+        require(farmer != address(0), "Farmer is a zero address");
         token.burnFrom(farmer, amount);
         emit Redeemed(farmer, storeManager, amount, block.timestamp);
     }
@@ -89,6 +96,6 @@ contract RedeemAndBurn is AccessControl, Pausable, ReentrancyGuard {
         require(to != address(0), "Zero address not allowed");
         require(amount > 0, "Amount must be greater than zero");
         IERC20(_token).safeTransfer(to, amount);
+        emit TokensWithdrawn(_token, to, amount);
     }
 }
-
